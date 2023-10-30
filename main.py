@@ -1,5 +1,7 @@
 import time
 
+from sklearn.preprocessing import StandardScaler
+
 from methods.multirocket.multirocket import MultiRocket
 from methods.rocket.rocket_functions import generate_kernels, apply_kernels, apply_kernels_v2
 from methods.minirocket.minirocket import fit, transform
@@ -11,12 +13,17 @@ import pandas as pd
 import numpy as np
 
 AVAILABLE_METHODS = ["rocket-ppv-max", "rocket-avg", "minirocket", "multirocket", "inceptiontime"]
-method = "inceptiontime"
-# kernels_test = [10, 100, 1000, 5000, 10000]
-kernels_test = [1000]
+method = "minirocket"
+kernels_test = [100, 1000, 5000, 10000]
+# kernels_test = [1000]
 WINDOW = 30
-NUM_FEATURES = 4
 LAG = 20
+# set which ts-features to include in rocket
+# 1 - avg
+# 2 - avg+std
+# 4 - avg+std, min, max
+NUM_FEATURES = 4
+
 
 
 def lag_ts(x, lag, z=1):
@@ -40,8 +47,8 @@ def lag_ts(x, lag, z=1):
 if __name__ == "__main__":
     result = ""
     for NUM_KERNELS in kernels_test:
-        train_data = pd.read_csv("C:/Users/Hanna/Documents/data/uci-stock/Processed_DJI train.csv")
-        test_data = pd.read_csv("C:/Users/Hanna/Documents/data/uci-stock/Processed_DJI test.csv")
+        train_data = pd.read_csv("./data/Processed_DJI train.csv")
+        test_data = pd.read_csv("./data/Processed_DJI test.csv")
         train_x = train_data['Close'].to_numpy()
         test_x = test_data["Close"].to_numpy()
 
@@ -66,6 +73,8 @@ if __name__ == "__main__":
             # transform test set
             X_test_transform = apply_kernels_v2(X_test, NUM_FEATURES, kernels)
         elif method == "minirocket":
+            X_train = np.float32(X_train)
+            X_test = np.float32(X_test)
             parameters = fit(X_train)
             X_training_transform = transform(X_train, parameters)
             X_test_transform = transform(X_test, parameters)
@@ -81,6 +90,11 @@ if __name__ == "__main__":
             predictions = regression.predict(X_test)
             error = mean_absolute_error(y_test, predictions)
         elif method == "inceptiontime":
+            scaler = StandardScaler()
+
+            X_train = scaler.fit_transform(X_train)
+            X_test = scaler.transform(X_test)
+
             X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
             X_test = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
 
@@ -91,7 +105,9 @@ if __name__ == "__main__":
                 input_shape,
                 nb_classes=1,
                 verbose=True,
-                build=True)
+                build=True,
+                nb_epochs=500,
+            )
             inceptiontime.fit(X_train, y_train, X_test, y_test, y_test)
             predictions = inceptiontime.predict(X_test, y_test, return_df_metrics=False)
             error = mean_absolute_error(y_test, predictions)
@@ -99,7 +115,7 @@ if __name__ == "__main__":
             X_training_transform = X_train
             X_test_transform = X_test
 
-        if method != "multirocket":
+        if not method in ["multirocket", "inceptiontime"]:
             regressor = MLPRegressor(max_iter=300)
             regressor.fit(X_training_transform, y_train)
 

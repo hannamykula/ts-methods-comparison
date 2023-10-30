@@ -109,7 +109,7 @@ def read_all_datasets(root_dir, archive_name):
 
 
 def calculate_metrics(y_true, y_pred, duration):
-    res = pd.DataFrame(data=np.zeros((1, 4), dtype=np.float), index=[0],
+    res = pd.DataFrame(data=np.zeros((1, 2), dtype=np.float), index=[0],
                        columns=["mae", "mse"])
     res["mae"] = mean_absolute_error(y_true, y_pred)
     res["mse"] = mean_squared_error(y_true, y_pred)

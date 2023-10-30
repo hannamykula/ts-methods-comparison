@@ -182,7 +182,9 @@ def apply_kernel_v2(X, weights, length, bias, dilation, padding):
         #     _ppv += 1
 
     avg, std, min, max = ts_features(features)
+
     return avg, std, min, max
+
 
 
 def smoothed_average(features, window):
